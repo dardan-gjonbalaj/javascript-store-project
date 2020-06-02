@@ -3,3 +3,11 @@
   grid-template-columns: repeat(3, 1fr);
   grid-gap: 30px;
 }
+
+h5.hidden {
+  display: none;
+}
+
+p.hidden {
+  display: none;
+}
