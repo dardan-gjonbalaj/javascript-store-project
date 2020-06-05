@@ -5,33 +5,27 @@ const STORE_URL = "http://localhost:3000/stores";
 // product methods
 // edit
 // delete
-class Products {
-  constructor() {
-    document.getElementById("new").addEventListener("click", async () => {
-      const newItem = await newProductCard();
-      console.log(newItem);
-      createNewProductCard(newItem);
-    });
+class Product {
+  constructor(data) {
+    this.data = data;
+    this.html = this.createCard();
   }
 
-  getStore() {
-    fetch(STORE_URL, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        json.forEach((store) => {
-          console.log(store);
-          createProductCards(store);
-        });
+  static getStore() {
+    return (
+      fetch(STORE_URL, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
-      .catch((e) => console.log(e));
+        .then((res) => res.json())
+        .then((json) => json)
+        .catch((e) => console.log(e))
+    );
   }
 
-  ceateCardViewState(data) {
+  ceateCardViewState() {
     // create card body
     const cardBodyElem = document.createElement("div");
     cardBodyElem.className = "card-body card-body-view";
@@ -39,19 +33,19 @@ class Products {
     // create card title
     const cardTitleElem = document.createElement("h5");
     cardTitleElem.className = "card-title";
-    cardTitleElem.innerText = data.name;
+    cardTitleElem.innerText = this.data.name;
 
     // create material p
     const cardMaterialElem = document.createElement("p");
     cardMaterialElem.className = "card-text";
-    cardMaterialElem.innerText = data.material;
+    cardMaterialElem.innerText = this.data.material;
 
     // create edit button
     const editCardButtonElem = document.createElement("button");
     editCardButtonElem.className = "btn btn-primary";
     editCardButtonElem.innerText = "Edit";
     editCardButtonElem.addEventListener("click", (e) => {
-      showEditState(e);
+      this.showEditState(e);
     });
 
     // create delete button
@@ -59,7 +53,7 @@ class Products {
     deleteCardButtonElem.className = "btn btn-danger";
     deleteCardButtonElem.innerText = "Delete";
     deleteCardButtonElem.addEventListener("click", (e) => {
-      deleteProduct(data);
+      this.deleteProduct(this.data);
       e.target.parentNode.parentNode.remove();
     });
 
@@ -71,18 +65,18 @@ class Products {
     return cardBodyElem;
   }
 
-  ceateCardEditState(data) {
+  ceateCardEditState() {
     // create card body
     const cardBodyElem = document.createElement("div");
     cardBodyElem.className = "card-body card-body-edit d-none";
 
     // create card title input
     const cardTitleElem = document.createElement("input");
-    cardTitleElem.value = data.name;
+    cardTitleElem.value = this.data.name;
 
     // create material input
     const cardMaterialElem = document.createElement("input");
-    cardMaterialElem.value = data.material;
+    cardMaterialElem.value = this.data.material;
 
     // create edit button
     const editCardButtonElem = document.createElement("button");
@@ -91,8 +85,8 @@ class Products {
     editCardButtonElem.addEventListener("click", async (e) => {
       // some logic to change in DB and in client
       // call the api, pass the values in body
-      const newData = await editProduct({
-        ...data,
+      const newData = await this.editProduct({
+        ...this.data,
         material: cardMaterialElem.value,
         name: cardTitleElem.value,
       });
@@ -106,7 +100,7 @@ class Products {
       elem.querySelector("h5").innerText = newData.name;
       elem.querySelector("p").innerText = newData.material;
 
-      showViewState(e);
+      this.showViewState(e);
     });
 
     // create delete button
@@ -114,7 +108,7 @@ class Products {
     deleteCardButtonElem.className = "btn btn-danger";
     deleteCardButtonElem.innerText = "Cancel";
     deleteCardButtonElem.addEventListener("click", (e) => {
-      showViewState(e);
+      this.showViewState(e);
     });
 
     cardBodyElem.appendChild(cardTitleElem);
@@ -125,19 +119,19 @@ class Products {
     return cardBodyElem;
   }
 
-  createCard(data) {
+  createCard() {
     // create card
     const cardElem = document.createElement("div");
     cardElem.className = "card";
-    cardElem.id = data.id;
+    cardElem.id = this.data.id;
 
     // create card image
     const cardImageElem = document.createElement("img");
     cardImageElem.className = "card-img-top";
-    cardImageElem.src = data.image_url;
+    cardImageElem.src = this.data.image_url;
 
-    const cardBodyView = ceateCardViewState(data);
-    const cardBodyEdit = ceateCardEditState(data);
+    const cardBodyView = this.ceateCardViewState(this.data);
+    const cardBodyEdit = this.ceateCardEditState(this.data);
 
     // append child to card
     cardElem.appendChild(cardImageElem);
@@ -161,16 +155,6 @@ class Products {
 
     editBox.classList.add("d-none");
     viewBox.classList.remove("d-none");
-  }
-
-  static createProductCards(data) {
-    const root = document.getElementById("root");
-    data.items.forEach((item) => root.appendChild(createCard(item)));
-  }
-
-  createNewProductCard(data) {
-    const root = document.getElementById("root");
-    root.appendChild(createCard(data));
   }
 
   editProduct(data) {
@@ -201,7 +185,7 @@ class Products {
       .catch((e) => console.log(e));
   }
 
-  newProductCard() {
+  static newProductCard() {
     return fetch(`${STORE_URL}/1/items`, {
       method: "POST",
       headers: {
@@ -215,5 +199,23 @@ class Products {
   }
 }
 
-let store = new Products();
-store.getStore();
+document.getElementById("new").addEventListener("click", async () => {
+  const newItem = await Product.newProductCard();
+  const product = new Product(newItem);
+  createProductCards([product]);
+});
+
+function createProductCards(products) {
+  const root = document.getElementById("root");
+  products.forEach((product) => root.appendChild(product.html));
+}
+
+const store = Product.getStore();
+
+store.then((res) => {
+  const products = res[0].items.map((itemData) => new Product(itemData));
+  console.log(products[0]);
+  createProductCards(products);
+});
+
+console.log(store);
